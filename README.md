@@ -11,11 +11,11 @@ Search all history by keyword — Chinese substrings included — with highlight
 ## What you get
 
 - **Keyword search over all sessions.** Multiple space-separated terms are ANDed; wrap a phrase in `"quotes"` to keep it together. Matching is case-insensitive and works on raw substrings, so `魔法链接` or `pnpm test` hit inside a sentence — no tokenizer, no FTS backend required.
-- **Search only what you typed, or only what came back.** A scope switch narrows the search to **prompts** (your messages), **final output** (assistant text, excluding tool calls and tool results), or everything.
+- **Only the prompts and the final answers.** The index deliberately leaves out process: intermediate assistant messages, tool calls, tool results, todos, and compaction summaries are not searchable. A scope switch narrows further to **prompts** (what you sent) or **final output** (the last text of each turn).
 - **Highlighted hits.** Every result carries the exact `[start, end)` ranges to highlight, so the UI marks the words without re-scanning text.
-- **Visualization.** Sessions / indexable messages / total characters / workspaces as stat cards; a 14-day stacked bar chart; top-10 tool calls; workspace distribution.
+- **Visualization.** Sessions / searchable content / tool calls / workspaces as stat cards; a 14-day stacked bar chart; top-10 tool calls; workspace distribution. Tool activity is counted for the charts but never enters the search index.
 - **Live.** The panel polls a host-side index that is rebuilt incrementally: a session is re-read only when its log length (live) or persistence revision (cold) changed. A conversation you are having right now becomes searchable within a couple of seconds.
-- **Drill-down.** Open any hit to read the whole conversation in a drawer, then jump to it in DSH with one button.
+- **Drill-down.** Open any hit to read the prompt-and-answer thread in a drawer, then jump to it in DSH with one button.
 
 ## Install
 
@@ -42,19 +42,32 @@ After installation, open the left sidebar and click **会话检索 / Session Exp
 ```text
 ┌──────────────── browser (lib/client.js) ─────────────────┐
 │ main panel  +  sidebar.panellist icon                    │
-│ polls GET /api/session-explorer/state?q=…                │
+│ polls GET /api/session-explorer/state?q=&scope=…         │
 └───────────────────────────┬──────────────────────────────┘
                             │ same-origin fetch (JSON)
 ┌───────────────────────────┴──────────────────────────────┐
 │ host (lib/index.js)                                      │
 │  • ctx.sessionQuery.listSessions() / readSession()       │
-│  • semantic-text extraction per event (mirrors DSH)      │
+│  • keeps prompts + per-turn final answers only           │
 │  • incremental in-memory index + literal keyword search  │
 │  • ctx.webServer.register({ kind: 'prefix', … })         │
 └──────────────────────────────────────────────────────────┘
 ```
 
-Two deliberate choices:
+### What gets indexed
+
+For every session the host walks the event log once:
+
+| Event | Goes into the index? |
+|---|---|
+| `user/message` | yes — a **prompt** |
+| `assistant/message` | only the **last text-only message of a turn**; an assistant message carrying a `tool-call` block is process and is dropped |
+| `tool/call`, `tool/result` | no — counted for the tool ranking only |
+| `todo/write`, `compaction/summary`, `turn/end` | no |
+
+So a turn that reasons, calls five tools, and finally answers contributes exactly one searchable output. Searching `pwsh` finds conversations that *talk about* pwsh, never the tool call itself.
+
+Two more deliberate choices:
 
 1. **Reads, not FTS.** `dsh-base` ships `dsh-session-query-sqlite` with `openAt: never`, so ranked full-text search is off by default. This plugin uses only the exact reads every deployment provides (`listSessions`, `readSession`) and maintains its own derived index. Substring recall — especially for CJK, where the `unicode61` tokenizer cannot match inside a token — is exactly what a keyword box should do.
 2. **An HTTP route, not generated RPC.** DSH's Typert Remote channel needs generated descriptors and codecs. A plain-JS plugin can instead register a route on `ctx.webServer` (same origin, same port, no extra listener) and `fetch` it. That keeps this package dependency-free and installable anywhere.
@@ -63,8 +76,8 @@ Two deliberate choices:
 
 | Method | Path | Meaning |
 |---|---|---|
-| `GET` | `/api/session-explorer/state?q=&scope=` | Index status, stats, session summaries, and hits for `q`. `scope` is `all` (default), `user`, `assistant`, or `tool` |
-| `GET` | `/api/session-explorer/session?id=` | Readable body of one session (last 200 events) |
+| `GET` | `/api/session-explorer/state?q=&scope=` | Index status, stats, session summaries, and hits for `q`. `scope` is `all` (default), `user` (prompts), or `assistant` (final outputs) |
+| `GET` | `/api/session-explorer/session?id=` | Readable thread of one session — its prompts and final outputs (last 200 documents) |
 | `POST` | `/api/session-explorer/refresh` | Force a full re-index |
 | `GET` | `/api/session-explorer/health` | Liveness probe |
 

@@ -11,11 +11,11 @@
 ## 能做什么
 
 - **全库检索**：空格分隔多个关键词＝同时命中（AND）；`"引号"` 包住一个短语。大小写不敏感、按原始子串匹配，所以 `魔法链接`、`pnpm test` 这种夹在句子中间的内容也能搜到——不依赖分词，也不需要 FTS 后端。
-- **只搜提示词，或只搜最终输出**：顶部的分段开关把范围收窄到「提示词」（你发出去的消息）、「最终输出」（助手写出的文字，不含工具调用与工具结果），或全部。
+- **只收提示词和最终输出**：索引里刻意不收过程——中间那些带工具调用的助手消息、工具调用、工具结果、todo、压缩摘要都不可检索。顶部分段开关还能再收窄到「提示词」（你发出去的消息）或「最终输出」（每一轮里最后那段纯文字回答）。
 - **命中高亮**：每条结果都带精确的 `[start, end)` 区间，前端直接画 `<mark>`，不用再扫一遍文本。
-- **可视化**：会话数 / 可检索消息数 / 文本量 / 工作区数四张卡片，近 14 天堆叠柱状图，工具调用 Top 10，工作区分布。
+- **可视化**：会话数 / 可检索内容 / 工具调用 / 工作区四张卡片，近 14 天堆叠柱状图，工具调用 Top 10，工作区分布。工具活动只进图表计数，绝不进检索索引。
 - **实时**：面板轮询宿主侧的派生索引；只有当会话日志长度（活跃会话）或持久化 revision（冷会话）变化时才重读那个会话。你正在聊的这一段，几秒内就能被搜到。
-- **下钻**：点开任意命中，抽屉里能读完整对话，再一键「打开会话」跳回 DSH 里的那个会话。
+- **下钻**：点开任意命中，抽屉里能读这一串「提问 + 最终回答」，再一键「打开会话」跳回 DSH 里的那个会话。
 
 ## 安装
 
@@ -42,17 +42,30 @@ dsh plugin add github:fuguoqiang-bnu/dsh-plugin-session-search
 ```text
 ┌──────────────── 浏览器（lib/client.js）────────────────┐
 │ main 面板 + sidebar.panellist 图标                      │
-│ 轮询 GET /api/session-explorer/state?q=…                │
+│ 轮询 GET /api/session-explorer/state?q=&scope=…         │
 └──────────────────────────┬──────────────────────────────┘
                            │ 同源 fetch（JSON）
 ┌──────────────────────────┴──────────────────────────────┐
 │ 宿主（lib/index.js）                                     │
 │  • ctx.sessionQuery.listSessions() / readSession()       │
-│  • 逐事件语义文本抽取（规则与 DSH 自身一致）               │
+│  • 只留提示词 + 每轮的最终回答                            │
 │  • 增量内存索引 + 字面量关键词检索                        │
 │  • ctx.webServer.register({ kind: 'prefix', … })         │
 └──────────────────────────────────────────────────────────┘
 ```
+
+### 索引里到底有什么
+
+每个会话的日志只走一遍：
+
+| 事件 | 进不进索引 |
+|---|---|
+| `user/message` | 进 —— 作为**提示词** |
+| `assistant/message` | 只有**一轮里最后那条纯文字消息**进；带 `tool-call` 块的助手消息属于过程，丢掉 |
+| `tool/call`、`tool/result` | 不进 —— 只计入工具排行 |
+| `todo/write`、`compaction/summary`、`turn/end` | 不进 |
+
+所以一轮「思考 → 调五次工具 → 最后回答」只贡献一条可检索的输出。搜 `pwsh` 命中的是**聊到** pwsh 的对话，而不是那次工具调用本身。
 
 两个刻意的取舍：
 
@@ -63,8 +76,8 @@ dsh plugin add github:fuguoqiang-bnu/dsh-plugin-session-search
 
 | 方法 | 路径 | 含义 |
 |---|---|---|
-| `GET` | `/api/session-explorer/state?q=&scope=` | 索引状态、统计、会话摘要，以及 `q` 的命中；`scope` 取 `all`（默认）/ `user` / `assistant` / `tool` |
-| `GET` | `/api/session-explorer/session?id=` | 单个会话的可读正文（最近 200 条事件） |
+| `GET` | `/api/session-explorer/state?q=&scope=` | 索引状态、统计、会话摘要，以及 `q` 的命中；`scope` 取 `all`（默认）/ `user`（提示词）/ `assistant`（最终输出） |
+| `GET` | `/api/session-explorer/session?id=` | 单个会话的可读线索：它的提示词与最终输出（最近 200 条文档） |
 | `POST` | `/api/session-explorer/refresh` | 强制全量重建索引 |
 | `GET` | `/api/session-explorer/health` | 存活探针 |
 
