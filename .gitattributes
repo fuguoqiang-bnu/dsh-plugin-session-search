@@ -1,0 +1,5 @@
+# 统一换行，避免 Windows/Linux 来回改行尾产生无意义的 diff。
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.webp binary
