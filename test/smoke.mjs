@@ -203,6 +203,35 @@ const onlyMagic = await call(route, `/state?q=${encodeURIComponent('magic 不存
 assert.equal(onlyMagic.body.totalHits, 0)
 assert.equal(onlyMagic.body.groups.length, 0)
 
+/* ── 检索范围：只看提示词 / 只看最终输出 ───────────────────────── */
+
+// magic 只出现在 session-b 的「你」消息和 session-a 的「助手」消息里。
+const userOnly = await call(route, '/state?q=magic&scope=user')
+assert.equal(userOnly.body.scope, 'user')
+assert.equal(userOnly.body.totalHits, 1, '只看提示词时应该只命中用户消息')
+assert.equal(userOnly.body.hits[0].role, 'user')
+assert.equal(userOnly.body.groups[0].id, 'session-b')
+
+const assistantOnly = await call(route, '/state?q=magic&scope=assistant')
+assert.equal(assistantOnly.body.scope, 'assistant')
+assert.equal(assistantOnly.body.totalHits, 2, '只看最终输出时应该只命中两条助手消息')
+assert.ok(assistantOnly.body.hits.every((item) => item.role === 'assistant'))
+assert.equal(assistantOnly.body.groups.length, 2)
+
+// 工具关键字在「提示词」范围里必须搜不到，在「全部」里搜得到。
+const toolInUser = await call(route, '/state?q=pwsh&scope=user')
+assert.equal(toolInUser.body.totalHits, 0, '工具调用不该出现在只看提示词的结果里')
+const toolInAll = await call(route, '/state?q=pwsh&scope=all')
+assert.ok(toolInAll.body.totalHits > 0, '全部范围里应该能搜到工具调用')
+const toolOnly = await call(route, '/state?q=pwsh&scope=tool')
+assert.ok(toolOnly.body.totalHits > 0)
+assert.equal(toolOnly.body.hits[0].role, 'tool')
+
+// 认不出来的 scope 退回 all，不报错。
+const bogus = await call(route, '/state?q=pwsh&scope=whatever')
+assert.equal(bogus.body.scope, 'all')
+assert.ok(bogus.body.totalHits > 0)
+
 // 详情接口。
 const detail = await call(route, '/session?id=session-a')
 assert.equal(detail.status, 200)
@@ -232,4 +261,4 @@ assert.equal(grown.groups[0].id, 'session-b')
 for (const item of ctx.effects.reverse()) item.dispose()
 assert.equal(routes.length, 0, '卸载后路由应被摘掉')
 
-console.log('smoke: 12 checks passed')
+console.log('smoke: all checks passed')

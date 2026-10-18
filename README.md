@@ -11,6 +11,7 @@ Search all history by keyword — Chinese substrings included — with highlight
 ## What you get
 
 - **Keyword search over all sessions.** Multiple space-separated terms are ANDed; wrap a phrase in `"quotes"` to keep it together. Matching is case-insensitive and works on raw substrings, so `魔法链接` or `pnpm test` hit inside a sentence — no tokenizer, no FTS backend required.
+- **Search only what you typed, or only what came back.** A scope switch narrows the search to **prompts** (your messages), **final output** (assistant text, excluding tool calls and tool results), or everything.
 - **Highlighted hits.** Every result carries the exact `[start, end)` ranges to highlight, so the UI marks the words without re-scanning text.
 - **Visualization.** Sessions / indexable messages / total characters / workspaces as stat cards; a 14-day stacked bar chart; top-10 tool calls; workspace distribution.
 - **Live.** The panel polls a host-side index that is rebuilt incrementally: a session is re-read only when its log length (live) or persistence revision (cold) changed. A conversation you are having right now becomes searchable within a couple of seconds.
@@ -62,8 +63,8 @@ Two deliberate choices:
 
 | Method | Path | Meaning |
 |---|---|---|
-| `GET` | `/api/session-explorer/state?q=` | Index status, stats, session summaries, and hits for `q` |
-| `GET` | `/api/session-explorer/session?id=` | Readable body of one session (last 400 events) |
+| `GET` | `/api/session-explorer/state?q=&scope=` | Index status, stats, session summaries, and hits for `q`. `scope` is `all` (default), `user`, `assistant`, or `tool` |
+| `GET` | `/api/session-explorer/session?id=` | Readable body of one session (last 200 events) |
 | `POST` | `/api/session-explorer/refresh` | Force a full re-index |
 | `GET` | `/api/session-explorer/health` | Liveness probe |
 

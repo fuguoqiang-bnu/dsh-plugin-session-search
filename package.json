@@ -1,6 +1,6 @@
 {
   "name": "dsh-session-explorer",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "DeepSeek Harness 插件：把本机所有对话记录做成可搜索、可统计、会实时更新的面板——关键词高亮命中、会话活动热力图、工具调用排行、工作区分布，全部离线在本机完成。",
   "type": "module",
   "main": "lib/index.js",

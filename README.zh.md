@@ -11,6 +11,7 @@
 ## 能做什么
 
 - **全库检索**：空格分隔多个关键词＝同时命中（AND）；`"引号"` 包住一个短语。大小写不敏感、按原始子串匹配，所以 `魔法链接`、`pnpm test` 这种夹在句子中间的内容也能搜到——不依赖分词，也不需要 FTS 后端。
+- **只搜提示词，或只搜最终输出**：顶部的分段开关把范围收窄到「提示词」（你发出去的消息）、「最终输出」（助手写出的文字，不含工具调用与工具结果），或全部。
 - **命中高亮**：每条结果都带精确的 `[start, end)` 区间，前端直接画 `<mark>`，不用再扫一遍文本。
 - **可视化**：会话数 / 可检索消息数 / 文本量 / 工作区数四张卡片，近 14 天堆叠柱状图，工具调用 Top 10，工作区分布。
 - **实时**：面板轮询宿主侧的派生索引；只有当会话日志长度（活跃会话）或持久化 revision（冷会话）变化时才重读那个会话。你正在聊的这一段，几秒内就能被搜到。
@@ -62,8 +63,8 @@ dsh plugin add github:fuguoqiang-bnu/dsh-plugin-session-search
 
 | 方法 | 路径 | 含义 |
 |---|---|---|
-| `GET` | `/api/session-explorer/state?q=` | 索引状态、统计、会话摘要，以及 `q` 的命中 |
-| `GET` | `/api/session-explorer/session?id=` | 单个会话的可读正文（最近 400 条事件） |
+| `GET` | `/api/session-explorer/state?q=&scope=` | 索引状态、统计、会话摘要，以及 `q` 的命中；`scope` 取 `all`（默认）/ `user` / `assistant` / `tool` |
+| `GET` | `/api/session-explorer/session?id=` | 单个会话的可读正文（最近 200 条事件） |
 | `POST` | `/api/session-explorer/refresh` | 强制全量重建索引 |
 | `GET` | `/api/session-explorer/health` | 存活探针 |
 
