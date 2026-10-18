@@ -1,5 +1,7 @@
 # dsh-session-explorer · 会话检索
 
+> 仓库名是 `dsh-plugin-session-search`，里面装的是 DSH bundle **`dsh-session-explorer`**——插件管理器按 `package.json` 里的包名安装，`dsh.profile.bundles` 里列的也是包名。
+
 给 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 用的插件：把**这台机器上所有对话记录**变成一个可检索、会实时更新的面板。
 
 按关键词搜索全部历史（中文子串也能搜），命中的每个词都高亮；同时用图表看清自己的工作在往哪儿走——近 14 天活动柱状图、工具调用排行、工作区分布。全部在本机计算，不外传任何数据。
@@ -27,7 +29,7 @@ plugin_manager  action: install_bundle  target: <本仓库的绝对路径>
 或者直接从 GitHub 装：
 
 ```text
-dsh plugin add github:<你的账号>/dsh-session-explorer
+dsh plugin add github:fuguoqiang-bnu/dsh-plugin-session-search
 ```
 
 **手动装**：把本目录拷到 `$DSH_PROFILE_DIR/node_modules/dsh-session-explorer`，在 profile 的 `package.json` 里把 `"dsh-session-explorer"` 加进 `dsh.profile.bundles`，重启 DSH。bundle 的 `cordis.patch.yml` 会把插件行插进去。

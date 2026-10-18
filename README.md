@@ -1,5 +1,7 @@
 # dsh-session-explorer
 
+> Repository `dsh-plugin-session-search` ships the DSH bundle **`dsh-session-explorer`** — the package name is what the plugin manager installs and what `dsh.profile.bundles` lists.
+
 A [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) plugin that turns **every conversation stored on this machine** into one searchable, always-current panel.
 
 Search all history by keyword — Chinese substrings included — with highlighted hits, and see the shape of your work at a glance: a 14-day activity chart, tool-call ranking, and a per-workspace breakdown. Everything is computed locally; nothing leaves the machine.
@@ -27,7 +29,7 @@ plugin_manager  action: install_bundle  target: <absolute path to this checkout>
 or install straight from GitHub:
 
 ```text
-dsh plugin add github:<you>/dsh-session-explorer
+dsh plugin add github:fuguoqiang-bnu/dsh-plugin-session-search
 ```
 
 **By hand**: copy this directory into `$DSH_PROFILE_DIR/node_modules/dsh-session-explorer`, add `"dsh-session-explorer"` to `dsh.profile.bundles` in the profile `package.json`, and restart DSH. The bundle's `cordis.patch.yml` inserts the plugin row.
