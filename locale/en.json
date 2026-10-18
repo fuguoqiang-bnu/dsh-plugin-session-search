@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Session Explorer",
+    "description": "A live panel over every conversation stored on this machine: keyword search with CJK substring support, highlighted hits, a 14-day activity chart, tool-call ranking, and a workspace breakdown."
+  }
+}

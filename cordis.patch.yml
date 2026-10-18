@@ -1,0 +1,10 @@
+# dsh-session-explorer 的 bundle 层。
+#
+# 这个文件只在「安装时」被读取一次：它把下面这一行插件插进当前 profile 的组合里。
+# 直属字段是「动作」数组，只有 insert: 能新增插件行；直接写 - id: xxx 只会去覆盖
+# 或禁用已存在的行，写错会静默丢弃，所以新增插件必须用 insert。
+#
+# id 在整个 profile 的行栈里必须唯一，否则加载会以 duplicate loader entry id 失败。
+- insert:
+    - id: session-explorer
+      name: dsh-session-explorer
